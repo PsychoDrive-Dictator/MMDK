@@ -383,7 +383,7 @@ local function convert_tbl_to_numeric_keys(json_tbl)
 end
 
 --Converts a REManagedObject or a Lua table with REManagedObjects into a pure Lua table for json.dump_file
-local function convert_to_json_tbl(tbl_or_object, max_layers, skip_arrays, skip_collections, skip_method_objs)
+local function convert_to_json_tbl(tbl_or_object, max_layers, skip_arrays, skip_collections, skip_method_objs, do_static)
 	
 	max_layers = max_layers or 15
 	local xyzw = {"x", "y", "z", "w"}
@@ -445,8 +445,6 @@ local function convert_to_json_tbl(tbl_or_object, max_layers, skip_arrays, skip_
 							new_tbl[string.format(fmt_string, i)] = get_non_null_value((is_obj and recurse(element, layer_no + 1)) or element)
 						end
 					end
-				elseif td_name:find("via%.[Ss]fix") then
-					return read_sfix(obj)
 				elseif td:get_field("x") then --ValueTypes with xyzw
 					local xtype = td:get_field("x"):get_type()
 					for i, name in ipairs(xyzw) do
@@ -454,6 +452,8 @@ local function convert_to_json_tbl(tbl_or_object, max_layers, skip_arrays, skip_
 						if new_tbl[name] == nil then break end
 						if xtype:is_a("via.sfix") then new_tbl[name] = new_tbl[name]:ToFloat() end
 					end
+				elseif td_name:find("via%.[Ss]fix") then
+					return read_sfix(obj)
 				elseif td:is_value_type() and obj["ToString()"] and pcall(obj["ToString()"], obj) then
 					return obj:call("ToString()")
 				elseif obj.mValue then
@@ -473,14 +473,18 @@ local function convert_to_json_tbl(tbl_or_object, max_layers, skip_arrays, skip_
 					local fields, methods = get_fields_and_methods(td)
 					for i, field in ipairs(fields) do
 						local name = field:get_name()
-						if not field:is_static() and name:sub(1,2) ~= "<>" and name ~= "_object" then
+						local proceedStaticField = not field:is_static()
+						if (do_static and layer_no == 0) then
+							proceedStaticField = field:is_static() 
+						end
+						if proceedStaticField and name:sub(1,2) ~= "<>" and name ~= "_object" then
 							local try, fdata = pcall(field.get_data, field, obj)
 							local should_recurse = try and type(fdata) == "userdata" and (field:get_type():is_value_type() or sdk.is_managed_object(fdata))
 							new_tbl[field:get_name()] = try and get_non_null_value(((should_recurse and recurse(fdata, layer_no + 1)) or fdata))
 						end
 					end
 					for i, method in ipairs(methods) do
-						if not method:is_static() and method:get_num_params() == 0 and method:get_name():find("[Gg]et") == 1 and not method:get_return_type():is_a("via.Component") then
+						if not do_static and not method:is_static() and method:get_num_params() == 0 and method:get_name():find("[Gg]et") == 1 and not method:get_return_type():is_a("via.Component") then
 							local try, mdata = pcall(method.call, method, obj)
 							if try and mdata ~= nil then
 								if not skip_method_objs and sdk.is_managed_object(mdata) and (obj[method:get_name():gsub("[Gg]et", "set")] or obj[method:get_name():gsub("[Gg]et", "Set")]) then

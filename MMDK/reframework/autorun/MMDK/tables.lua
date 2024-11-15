@@ -24,7 +24,9 @@ local characters = {
 	[19] = "Ed",
 	[20] = "E Honda", 
 	[21] = "Jamie", 
-	[22] = "Akuma", 
+	[22] = "Akuma",
+	[26] = "M. Bison",
+	[27] = "Terry"
 }
 
 --Table of indexes into the param of a HIT_DT_TBL, labelled by their purpose

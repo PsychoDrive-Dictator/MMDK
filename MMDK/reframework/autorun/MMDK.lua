@@ -211,27 +211,27 @@ PlayerData = {
 		
 		
 		data.vfx_by_ctr_id = {}
-		local vfx_arrays = {
-			gResource.VfxHolder.commonData.mStandardData,
-			gResource.VfxHolder.systemData.mStandardData,
-		}
-		for i, vfx_container in pairs(lua_get_array(data.person.VfxDatas._items)) do
-			table.insert(vfx_arrays, vfx_container.mStandardData)
-		end
-		for i, mStandardData in ipairs(vfx_arrays) do
-			for i, std_data_settings in pairs(lua_get_array(mStandardData._items)) do
-				local vfx_gameobj = scene:call("findGameObject(System.String)", std_data_settings.mData:get_Path():match(".+(epvs.+)%.pfb"))
-				local ctr_tbl = data.vfx_by_ctr_id[std_data_settings.mID] or {elements={}}
-				ctr_tbl.std_data_settings = std_data_settings
-				ctr_tbl.std_data = getC(vfx_gameobj, "via.effect.script.EPVStandardData")
-				if vfx_gameobj then
-					for i, element in pairs(lua_get_array(ctr_tbl.std_data.Elements, true)) do
-						ctr_tbl.elements[element.ID] = element --overwrite old System elements with new fighter-specific ones
-					end
-				end
-				data.vfx_by_ctr_id[std_data_settings.mID] = ctr_tbl
-			end
-		end
+		-- local vfx_arrays = {
+		-- 	gResource.VfxHolder.commonData.mStandardData,
+		-- 	gResource.VfxHolder.systemData.mStandardData,
+		-- }
+		-- for i, vfx_container in pairs(lua_get_array(data.person.VfxDatas._items)) do
+		-- 	table.insert(vfx_arrays, vfx_container.mStandardData)
+		-- end
+		-- for i, mStandardData in ipairs(vfx_arrays) do
+		-- 	for i, std_data_settings in pairs(lua_get_array(mStandardData._items)) do
+		-- 		local vfx_gameobj = scene:call("findGameObject(System.String)", std_data_settings.mData:get_Path():match(".+(epvs.+)%.pfb"))
+		-- 		local ctr_tbl = data.vfx_by_ctr_id[std_data_settings.mID] or {elements={}}
+		-- 		ctr_tbl.std_data_settings = std_data_settings
+		-- 		ctr_tbl.std_data = getC(vfx_gameobj, "via.effect.script.EPVStandardData")
+		-- 		if vfx_gameobj then
+		-- 			for i, element in pairs(lua_get_array(ctr_tbl.std_data.Elements, true)) do
+		-- 				ctr_tbl.elements[element.ID] = element --overwrite old System elements with new fighter-specific ones
+		-- 			end
+		-- 		end
+		-- 		data.vfx_by_ctr_id[std_data_settings.mID] = ctr_tbl
+		-- 	end
+		-- end
 		
 		data.triggers = gCommand:get_mUserEngine()[player_index-1]:call("GetTrigger()")
 		data.triggers_by_act_id = {}
@@ -1576,6 +1576,10 @@ re.on_frame(function()
 				imgui.same_line()
 				if imgui.button("Dump Commands") then
 					data:dump_commands_json()
+
+					--local assistCombo = lua_get_dict(gCommand.mpBCMResource[0].pAstCmb)
+					local assistComboJson = convert_to_json_tbl(gCommand.mpBCMResource[0].pAstCmb, nil, nil, nil, true)
+					json.dump_file("MMDK\\PlayerData\\" .. data.name .. "\\" .. data.name .. " assist.json", assistComboJson)
 				end
 				tooltip(tooltip_msg .. " commands.json")
 
@@ -1599,7 +1603,16 @@ re.on_frame(function()
 					data:dump_charge_json()
 				end
 				tooltip(tooltip_msg .. " charge.json")
+
 				
+				imgui.same_line()
+				if imgui.button("Dump Static Player") then
+					--local playerDict = lua_get_dict(gPlayer.mcPlayer[0])
+					local playerStaticJson = convert_to_json_tbl(gPlayer.mcPlayer[0], nil, nil, nil, nil, true)
+					json.dump_file("static_player.json", playerStaticJson)
+
+				end
+
 				if EMV then
 					EMV.read_imgui_element(data)
 				end
