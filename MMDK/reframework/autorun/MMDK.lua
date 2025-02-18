@@ -478,6 +478,12 @@ PlayerData = {
 		end
 		
 		::finish::
+		local origName = name
+		local appendID = 1
+		while self.moves_dict.By_Name[name] do
+			name = origName.."_"..appendID
+			appendID = appendID + 1
+		end
 		self.moves_dict.By_Name[name] = move
 		self.moves_dict.By_ID[act_id] = move
 		self.moves_dict.By_Index[#self.moves_dict.By_Index+1] = move
